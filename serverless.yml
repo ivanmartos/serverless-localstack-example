@@ -1,0 +1,68 @@
+service: example-service
+
+frameworkVersion: ^2.60.0
+useDotenv: true
+# doesnt load .env.offline, which doesnt then override ssm params,
+# and this makes the offline mode fail:
+# variablesResolutionMode: 20210326
+
+configValidationMode: 'warn' # will default to error in v3
+
+package:
+  individually: true
+  patterns:
+    - '!./**'
+
+plugins:
+  - serverless-webpack
+  - serverless-localstack
+  - serverless-offline
+
+custom:
+  webpack:
+    excludeFiles: '**/*.spec.ts'
+    packager: 'npm'
+    concurrency: 4
+    includeModules: true
+    keepOutputDirectory: true
+  localstack:
+    debug: true
+    stages:
+      - offline
+    autostart: true
+    lambda:
+      mountCode: true
+
+provider:
+  name: aws
+  lambdaHashingVersion: '20201221'
+  stackTags:
+    ENVIRONMENT: ${self:provider.stage}
+    PROJECT: ${self:service}-${self:provider.stage}
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+  deploymentBucket:
+    name: serverless-deployment-bucket
+  tracing:
+    apiGateway: true
+    lambda: true
+  runtime: nodejs14.x
+  stage: ${opt:stage, 'offline'}
+  region: ${opt:region, 'eu-west-1'}
+  logRetentionInDays: 30
+  logs:
+    restApi: true
+  apiGateway:
+    minimumCompressionSize: 1024 # Enable gzip compression for responses > 1 KB
+
+functions:
+  hello:
+    handler: src/helloWorld.handler
+    events:
+      - http:
+          path: /hello
+          method: get
+resources:
+  Resources:
+    DefaultGatewayResponse5XX: ${file(./resources/ApiGateway/DefaultGatewayResponse.yml):Response5xx}
+    DefaultGatewayResponse4XX: ${file(./resources/ApiGateway/DefaultGatewayResponse.yml):Response4xx}

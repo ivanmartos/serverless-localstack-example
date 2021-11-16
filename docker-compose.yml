@@ -1,0 +1,19 @@
+version: '2.3'
+services:
+  localstack:
+    image: localstack/localstack:0.12.20
+    container_name: 'example-localstack'
+    ports:
+      - 4566:4566
+      - 4571:4571
+    environment:
+      - SERVICES=serverless,sqs,events,ssm,kms
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - HOSTNAME_EXTERNAL=localstack
+      - HOST_TMP_FOLDER=${PWD}/localstack_tmp
+      - LAMBDA_REMOTE_DOCKER=false
+    volumes:
+      - ${PWD}/localstack_tmp:/tmp/localstack
+      - '/var/run/docker.sock:/var/run/docker.sock'
